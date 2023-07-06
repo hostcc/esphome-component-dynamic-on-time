@@ -106,4 +106,3 @@ dynamic_on_time:
           format: 'schedule: Starting full sprinkler cycle'
           tag: lawn_sprinklers
           level: 'INFO'
-      - sprinkler.start_full_cycle: lawn_sprinklers
