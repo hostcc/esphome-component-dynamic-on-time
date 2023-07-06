@@ -5,7 +5,7 @@ esp32:
   board: esp32dev
 
 external_components:
-  - source: components
+  - source: components/
 
 switch:
   - platform: template
