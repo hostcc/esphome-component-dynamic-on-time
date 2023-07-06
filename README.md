@@ -14,7 +14,8 @@ trigger, but allows changing the schedule dynamically.
 * All months are enabled internally
 
 ## Usage
-To do that an ESPHome configuration should consider following components:
+
+The ESPHome configuration should consider following components:
 - [Number](https://esphome.io/index.html#number-components) to fetch hours and minutes from
 - [Switch](https://esphome.io/index.html#switch-components) to fetch days of week from
 
@@ -35,7 +36,7 @@ Multiple instances of the component are supported.
 * **fri** (*Required*, [Switch](https://esphome.io/index.html#switch-components)): Similarly but for Friday
 * **sat** (*Required*, [Switch](https://esphome.io/index.html#switch-components)): Similarly but for Saturday
 * **sun** (*Required*, [Switch](https://esphome.io/index.html#switch-components)): Similarly but for Sunday
-* **on_time** (*Requred*, [Automation](https://esphome.io/guides/automations.html#automation) Automation to run when schedule triggers
+* **on_time** (*Requred*, [Automation](https://esphome.io/guides/automations.html#automation)) Automation to run when schedule triggers
 
 ## Example
 
@@ -44,6 +45,9 @@ The HomeAssistant UI will present switches for each particular day of week, and
 two number inputs for hour and minute.
 
 ```
+external_components:
+  source: github://hostcc/esphome-component-dynamic-on-time
+
 switch:
   - platform: template
     id: lawn_sprinklers_mon
