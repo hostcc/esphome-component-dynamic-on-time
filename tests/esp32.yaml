@@ -1,3 +1,4 @@
+---
 esphome:
   name: test
 
@@ -5,7 +6,9 @@ esp32:
   board: esp32dev
 
 external_components:
-  - source: ./components/
+  - source:
+      type: local
+      path: ./components/
 
 switch:
   - platform: template
@@ -104,4 +107,3 @@ dynamic_on_time:
           tag: lawn_sprinklers
           level: 'INFO'
       - sprinkler.start_full_cycle: lawn_sprinklers
-
