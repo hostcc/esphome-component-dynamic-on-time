@@ -1,0 +1,35 @@
+---
+name: main
+
+on:  # yamllint disable rule:truthy
+  pull_request:
+  release:
+    types: [published]
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install cpplint yamllint flake8 pylint -r requirements.txt
+      - run: cpplint --recursive components/
+      - run: yamllint components/
+      - run: flake8 components/
+      - run: pylint components/
+
+  esphome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install -r requirements.txt
+      - run: esphome compile tests/esp32.yaml

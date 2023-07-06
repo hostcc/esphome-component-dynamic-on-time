@@ -5,6 +5,8 @@ from esphome.const import (
     CONF_ID,
     CONF_ON_TIME,
     CONF_THEN,
+    CONF_HOUR,
+    CONF_MINUTE,
 )
 import esphome.config_validation as cv
 import esphome.codegen as cg
@@ -14,12 +16,10 @@ from esphome.components.switch import Switch
 from esphome.components.time import RealTimeClock
 
 MULTI_CONF = True
-DEPENDENCIES = ["time"]
+DEPENDENCIES = ["time", "number", "switch"]
 CODEOWNERS = ["@hostcc"]
 
 CONF_RTC = 'rtc'
-CONF_HOUR = 'hour'
-CONF_MINUTE = 'minute'
 CONF_MON = 'mon'
 CONF_TUE = 'tue'
 CONF_WED = 'wed'
