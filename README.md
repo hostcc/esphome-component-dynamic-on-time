@@ -1,0 +1,1 @@
+# esphome-component-dynamic-on-time
