@@ -4,6 +4,9 @@ esphome:
 esp32:
   board: esp32dev
 
+external_components:
+  - source: components
+
 switch:
   - platform: template
     id: lawn_sprinklers_mon
@@ -54,3 +57,51 @@ switch:
     restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
+
+number:
+  - platform: template
+    id: lawn_sprinklers_hour
+    name: "Lawn sprinklers: Hour"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: 0
+    max_value: 23
+    step: 1
+    mode: box
+  - platform: template
+    name: "Lawn sprinklers: Minute"
+    id: lawn_sprinklers_minute
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: 0
+    max_value: 59
+    step: 1
+    mode: box
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+dynamic_on_time:
+  - id: lawn_schedule
+    rtc: homeassistant_time
+    hour: lawn_sprinklers_hour
+    minute: lawn_sprinklers_minute
+    mon: lawn_sprinklers_mon
+    tue: lawn_sprinklers_tue
+    wed: lawn_sprinklers_wed
+    thu: lawn_sprinklers_thu
+    fri: lawn_sprinklers_fri
+    sat: lawn_sprinklers_sat
+    sun: lawn_sprinklers_sun
+    on_time:
+      - logger.log:
+          format: 'schedule: Starting full sprinkler cycle'
+          tag: lawn_sprinklers
+          level: 'INFO'
+      - sprinkler.start_full_cycle: lawn_sprinklers
+
