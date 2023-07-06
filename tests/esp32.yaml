@@ -8,7 +8,7 @@ esp32:
 external_components:
   - source:
       type: local
-      path: ./components/
+      path: ../components/
 
 switch:
   - platform: template
