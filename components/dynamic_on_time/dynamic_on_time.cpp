@@ -45,17 +45,18 @@ std::vector<uint8_t> DynamicOnTime::flags_to_days_of_week_(
 }
 
 void DynamicOnTime::setup() {
-  // `Switch` and `Number` has no common base class having
-  // `add_on_state_callback` hence iterator variable is of `Switch` type
-  // (majority of component pointers), and remaining `Number` are casted to
-  // `Switch` so that single loop is possible
-  for (esphome::switch_::Switch *comp : {
-    reinterpret_cast<esphome::switch_::Switch *>(this->hour_),
-    reinterpret_cast<esphome::switch_::Switch *>(this->minute_),
+  for (auto *comp : std::vector<esphome::EntityBase *>{
+    this->hour_,
+    this->minute_,
     this->mon_, this->tue_, this->wed_, this->thu_, this->fri_, this->sat_,
     this->sun_
   }) {
-    comp->add_on_state_callback([this](float value) {
+    // `Switch` and `Number` has no common base class having
+    // `add_on_state_callback` hence iterating over `EntityBase` casting it to
+    // one of types having it
+    reinterpret_cast<esphome::switch_::Switch *>(comp)->add_on_state_callback(
+      [this](float value
+    ) {
       this->update_schedule_();
     });
   }
