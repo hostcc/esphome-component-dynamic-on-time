@@ -38,6 +38,8 @@ class DynamicOnTime : public Component {
 
   std::vector<uint8_t> flags_to_days_of_week_(
     bool, bool, bool, bool, bool, bool, bool);
+
+  void update_schedule_();
 };
 
 }  // namespace dynamic_on_time

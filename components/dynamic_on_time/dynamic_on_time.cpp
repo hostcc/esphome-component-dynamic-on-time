@@ -25,29 +25,7 @@ DynamicOnTime::DynamicOnTime(
     rtc_(rtc),
     hour_(hour), minute_(minute),
     mon_(mon), tue_(tue), wed_(wed), thu_(thu), fri_(fri), sat_(sat),
-    sun_(sun), actions_(actions) {
-  assert(this->hour_ != nullptr);
-  assert(this->minute_ != nullptr);
-
-  for (number::Number *comp : {this->hour_, this->minute_}) {
-    comp->add_on_state_callback([this](float value) { this->setup(); });
-  }
-
-  assert(this->mon_ != nullptr);
-  assert(this->tue_ != nullptr);
-  assert(this->wed_ != nullptr);
-  assert(this->thu_ != nullptr);
-  assert(this->fri_ != nullptr);
-  assert(this->sat_ != nullptr);
-  assert(this->sun_ != nullptr);
-
-  for (switch_::Switch *comp : {
-    this->mon_, this->tue_, this->wed_, this->thu_, this->fri_, this->sat_,
-    this->sun_
-  }) {
-    comp->add_on_state_callback([this](float value) { this->setup(); });
-  }
-}
+    sun_(sun), actions_(actions) {}
 
 std::vector<uint8_t> DynamicOnTime::flags_to_days_of_week_(
   bool mon, bool tue, bool wed, bool thu, bool fri, bool sat, bool sun
@@ -67,11 +45,26 @@ std::vector<uint8_t> DynamicOnTime::flags_to_days_of_week_(
 }
 
 void DynamicOnTime::setup() {
-  if (this->actions_.empty()) {
-    ESP_LOGW(tag, "No actions specified, exiting");
-    return;
+  // `Switch` and `Number` has no common base class having
+  // `add_on_state_callback` hence iterator variable is of `Switch` type
+  // (majority of component pointers), and remaining `Number` are casted to
+  // `Switch` so that single loop is possible
+  for (esphome::switch_::Switch *comp : {
+    reinterpret_cast<esphome::switch_::Switch *>(this->hour_),
+    reinterpret_cast<esphome::switch_::Switch *>(this->minute_),
+    this->mon_, this->tue_, this->wed_, this->thu_, this->fri_, this->sat_,
+    this->sun_
+  }) {
+    comp->add_on_state_callback([this](float value) {
+      this->update_schedule_();
+    });
   }
 
+  // Update the schedule initially
+  this->update_schedule_();
+}
+
+void DynamicOnTime::update_schedule_() {
   bool to_register = false;
 
   assert(this->rtc_ != nullptr);
