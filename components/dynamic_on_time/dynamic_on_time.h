@@ -20,6 +20,7 @@ class DynamicOnTime : public Component {
     std::vector<esphome::Action<> *>);
 
   void setup() override;
+  void dump_config() override;
 
  protected:
   time::RealTimeClock *rtc_;
