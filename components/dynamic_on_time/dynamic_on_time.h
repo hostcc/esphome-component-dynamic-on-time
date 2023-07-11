@@ -22,6 +22,8 @@ class DynamicOnTime : public Component {
   void setup() override;
   void dump_config() override;
 
+  optional<ESPTime> get_next_schedule();
+
  protected:
   time::RealTimeClock *rtc_;
   number::Number *hour_;
@@ -36,11 +38,13 @@ class DynamicOnTime : public Component {
   std::vector<esphome::Action<> *> actions_;
   time::CronTrigger *trigger_{nullptr};
   Automation<> *automation_{nullptr};
+  std::vector<uint8_t> days_of_week_{};
 
   std::vector<uint8_t> flags_to_days_of_week_(
     bool, bool, bool, bool, bool, bool, bool);
 
   void update_schedule_();
+  optional<ESPTime> next_schedule_{};
 };
 
 }  // namespace dynamic_on_time
