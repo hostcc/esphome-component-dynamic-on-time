@@ -109,14 +109,54 @@ void DynamicOnTime::update_schedule_() {
   // Similarly but for days of week translating set of components' state to
   // vector of numeric representation as `CrontTrigger::add_days_of_week()`
   // requires
-  std::vector<uint8_t> days_of_week = this->flags_to_days_of_week_(
+  this->days_of_week_ = this->flags_to_days_of_week_(
     this->mon_->state, this->tue_->state, this->wed_->state,
     this->thu_->state, this->fri_->state, this->sat_->state,
     this->sun_->state);
-  this->trigger_->add_days_of_week(days_of_week);
+  this->trigger_->add_days_of_week(this->days_of_week_);
+
+  // Initiate updating the cached value for the next schedule
+  this->next_schedule_.reset();
 
   // Log the configuration
   this->dump_config();
+}
+
+optional<ESPTime> DynamicOnTime::get_next_schedule() {
+  if (this->days_of_week_.empty())
+    return {};
+
+  ESPTime now = this->rtc_->now();
+
+  if (now < this->next_schedule_.value_or(now))
+    return this->next_schedule_;
+
+  ESP_LOGVV(tag, "Non-cached calculation of next schedule");
+
+  // Calculate timestamp for the start of the week with time being hour/time of
+  // the schedule
+  time_t start_of_week = now.timestamp
+    - (now.second + now.hour * 3600 + now.minute * 60 + now.day_of_week * 86400)
+    + (3600 * static_cast<int>(this->hour_->state)
+    + 60 * static_cast<int>(this->minute_->state));
+
+  time_t next = 0, first = 0;
+  for (auto next_day : this->days_of_week_) {
+    // Calculate the timestamp for next day in schedule
+    next = start_of_week + 86400 * next_day;
+    // Capture timestamp for the first scheduled day
+    if (!first)
+      first = next;
+    // Exit if timestamp corresponds of later date in the schedule found
+    if (next > now.timestamp)
+      break;
+  }
+  // No later date has been found, use the earlier of scheduled ones plus one
+  // week
+  if (next < now.timestamp)
+    next = first + 7 * 86400;
+
+  return this->next_schedule_ = ESPTime::from_epoch_local(next);
 }
 
 void DynamicOnTime::dump_config() {
@@ -148,6 +188,12 @@ void DynamicOnTime::dump_config() {
   ESP_LOGCONFIG(
     tag, "Sun (source: '%s'): %s",
     this->sun_->get_name().c_str(), this->sun_->state ? "Yes": "No");
+
+  auto schedule = this->get_next_schedule();
+  if (schedule.has_value())
+    ESP_LOGCONFIG(
+      tag, "Next schedule: %s",
+      schedule.value().strftime("%a %H:%M:%S %m/%d/%Y").c_str());
 }
 
 }  // namespace dynamic_on_time
