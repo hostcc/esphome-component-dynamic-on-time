@@ -19,56 +19,48 @@ switch:
     id: lawn_sprinklers_mon
     name: "Lawn sprinklers: Mon"
     optimistic: true
-    restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
   - platform: template
     id: lawn_sprinklers_tue
     name: "Lawn sprinklers: Tue"
     optimistic: true
-    restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
   - platform: template
     id: lawn_sprinklers_wed
     name: "Lawn sprinklers: Wed"
     optimistic: true
-    restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
   - platform: template
     id: lawn_sprinklers_thu
     name: "Lawn sprinklers: Thu"
     optimistic: true
-    restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
   - platform: template
     id: lawn_sprinklers_fri
     name: "Lawn sprinklers: Fri"
     optimistic: true
-    restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
   - platform: template
     id: lawn_sprinklers_sat
     name: "Lawn sprinklers: Sat"
     optimistic: true
-    restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
   - platform: template
     id: lawn_sprinklers_sun
     name: "Lawn sprinklers: Sun"
     optimistic: true
-    restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
   - platform: template
     id: lawn_sprinklers_disabled
     name: "Lawn sprinklers: Disable"
     optimistic: true
-    restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
 
