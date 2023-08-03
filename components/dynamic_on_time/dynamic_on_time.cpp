@@ -21,11 +21,12 @@ DynamicOnTime::DynamicOnTime(
   switch_::Switch *fri,
   switch_::Switch *sat,
   switch_::Switch *sun,
+  switch_::Switch *disabled,
   std::vector<esphome::Action<> *> actions):
     rtc_(rtc),
     hour_(hour), minute_(minute),
     mon_(mon), tue_(tue), wed_(wed), thu_(thu), fri_(fri), sat_(sat),
-    sun_(sun), actions_(actions) {}
+    sun_(sun), disabled_(disabled), actions_(actions) {}
 
 std::vector<uint8_t> DynamicOnTime::flags_to_days_of_week_(
   bool mon, bool tue, bool wed, bool thu, bool fri, bool sat, bool sun
@@ -67,9 +68,9 @@ void DynamicOnTime::setup() {
 
   for (switch_::Switch *comp : {
     this->mon_, this->tue_, this->wed_, this->thu_, this->fri_, this->sat_,
-    this->sun_
+    this->sun_, this->disabled_
   }) {
-    comp->add_on_state_callback([this](float value) {
+    comp->add_on_state_callback([this](bool value) {
       this->update_schedule_();
     });
   }
@@ -88,13 +89,23 @@ void DynamicOnTime::update_schedule_() {
     this->trigger_ = new time::CronTrigger(this->rtc_);
   }
 
-  // (Re)create the automation instance
-  if (this->automation_ != nullptr)
+  // (Re)create the automation instance but only if scheduled actions aren't
+  // disabled
+  if (this->automation_ != nullptr) {
     delete this->automation_;
-  this->automation_ = new Automation<>(this->trigger_);
-  // Add requested actions to it
-  this->automation_->add_actions(this->actions_);
+    this->automation_ = nullptr;
+  }
 
+  if (!this->disabled_->state) {
+    this->automation_ = new Automation<>(this->trigger_);
+    // Add requested actions to it
+    this->automation_->add_actions(this->actions_);
+  }
+
+  // All remaining logic is active regardless of scheduled actions are
+  // disabled, since callbacks from Switch/Number components being active still
+  // need to be processed otherwise inputs will be lost
+  //
   // Set trigger to fire on zeroth second of configured time
   this->trigger_->add_second(0);
   // Enable all days of months for the schedule
@@ -123,7 +134,7 @@ void DynamicOnTime::update_schedule_() {
 }
 
 optional<ESPTime> DynamicOnTime::get_next_schedule() {
-  if (this->days_of_week_.empty())
+  if (this->disabled_->state || this->days_of_week_.empty())
     return {};
 
   ESPTime now = this->rtc_->now();
@@ -161,6 +172,7 @@ optional<ESPTime> DynamicOnTime::get_next_schedule() {
 
 void DynamicOnTime::dump_config() {
   ESP_LOGCONFIG(tag, "Cron trigger details:");
+  ESP_LOGCONFIG(tag, "Disabled: %s", ONOFF(this->disabled_->state));
   ESP_LOGCONFIG(
     tag, "Hour (source: '%s'): %.0f",
     this->hour_->get_name().c_str(), this->hour_->state);
@@ -169,25 +181,25 @@ void DynamicOnTime::dump_config() {
     this->minute_->get_name().c_str(), this->minute_->state);
   ESP_LOGCONFIG(
     tag, "Mon (source: '%s'): %s",
-    this->mon_->get_name().c_str(), this->mon_->state ? "Yes": "No");
+    this->mon_->get_name().c_str(), ONOFF(this->mon_->state));
   ESP_LOGCONFIG(
     tag, "Tue (source: '%s'): %s",
-    this->tue_->get_name().c_str(), this->tue_->state ? "Yes": "No");
+    this->tue_->get_name().c_str(), ONOFF(this->tue_->state));
   ESP_LOGCONFIG(
     tag, "Wed (source: '%s'): %s",
-    this->wed_->get_name().c_str(), this->wed_->state ? "Yes": "No");
+    this->wed_->get_name().c_str(), ONOFF(this->wed_->state));
   ESP_LOGCONFIG(
     tag, "Thu (source: '%s'): %s",
-    this->thu_->get_name().c_str(), this->thu_->state ? "Yes": "No");
+    this->thu_->get_name().c_str(), ONOFF(this->thu_->state));
   ESP_LOGCONFIG(
     tag, "Fri (source: '%s'): %s",
-    this->fri_->get_name().c_str(), this->fri_->state ? "Yes": "No");
+    this->fri_->get_name().c_str(), ONOFF(this->fri_->state));
   ESP_LOGCONFIG(
     tag, "Sat (source: '%s'): %s",
-    this->sat_->get_name().c_str(), this->sat_->state ? "Yes": "No");
+    this->sat_->get_name().c_str(), ONOFF(this->sat_->state));
   ESP_LOGCONFIG(
     tag, "Sun (source: '%s'): %s",
-    this->sun_->get_name().c_str(), this->sun_->state ? "Yes": "No");
+    this->sun_->get_name().c_str(), ONOFF(this->sun_->state));
 
   auto schedule = this->get_next_schedule();
   if (schedule.has_value())

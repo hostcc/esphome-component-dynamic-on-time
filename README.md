@@ -36,6 +36,7 @@ Multiple instances of the component are supported.
 * **fri** (*Required*, [Switch](https://esphome.io/index.html#switch-components)): Similarly but for Friday
 * **sat** (*Required*, [Switch](https://esphome.io/index.html#switch-components)): Similarly but for Saturday
 * **sun** (*Required*, [Switch](https://esphome.io/index.html#switch-components)): Similarly but for Sunday
+* **disabled** (*Required*, [Switch](https://esphome.io/index.html#switch-components)): Component to disable scheduled actions
 * **on_time** (*Requred*, [Automation](https://esphome.io/guides/automations.html#automation)) Automation to run when schedule triggers
 
 ## Example
@@ -98,6 +99,13 @@ switch:
     restore_state: true
     restore_mode: RESTORE_DEFAULT_OFF
     entity_category: config
+  - platform: template
+    id: lawn_sprinklers_disabled
+    name: "Lawn sprinklers: Disable"
+    optimistic: true
+    restore_state: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: config
 
 number:
   - platform: template
@@ -139,6 +147,7 @@ dynamic_on_time:
     fri: lawn_sprinklers_fri
     sat: lawn_sprinklers_sat
     sun: lawn_sprinklers_sun
+    disabled: lawn_sprinklers_disabled
     on_time:
       - logger.log:
           format: 'schedule: Starting full sprinkler cycle'

@@ -16,7 +16,7 @@ class DynamicOnTime : public Component {
   explicit DynamicOnTime(
     time::RealTimeClock *, number::Number *, number::Number *,
     switch_::Switch *, switch_::Switch *, switch_::Switch *, switch_::Switch *,
-    switch_::Switch *, switch_::Switch *, switch_::Switch *,
+    switch_::Switch *, switch_::Switch *, switch_::Switch *, switch_::Switch *,
     std::vector<esphome::Action<> *>);
 
   void setup() override;
@@ -35,6 +35,7 @@ class DynamicOnTime : public Component {
   switch_::Switch *fri_;
   switch_::Switch *sat_;
   switch_::Switch *sun_;
+  switch_::Switch *disabled_;
   std::vector<esphome::Action<> *> actions_;
   time::CronTrigger *trigger_{nullptr};
   Automation<> *automation_{nullptr};

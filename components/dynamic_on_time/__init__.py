@@ -27,6 +27,7 @@ CONF_THU = 'thu'
 CONF_FRI = 'fri'
 CONF_SAT = 'sat'
 CONF_SUN = 'sun'
+CONF_DISABLED = 'disabled'
 
 dynamic_on_time_ns = cg.esphome_ns.namespace("dynamic_on_time")
 DynamicOnTimeComponent = dynamic_on_time_ns.class_(
@@ -45,6 +46,7 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Required(CONF_FRI): cv.use_id(Switch),
     cv.Required(CONF_SAT): cv.use_id(Switch),
     cv.Required(CONF_SUN): cv.use_id(Switch),
+    cv.Required(CONF_DISABLED): cv.use_id(Switch),
     cv.Required(CONF_ON_TIME): automation.validate_automation({}),
 }).extend(cv.COMPONENT_SCHEMA)
 
@@ -71,6 +73,7 @@ async def to_code(config):
         await cg.get_variable(config[CONF_FRI]),
         await cg.get_variable(config[CONF_SAT]),
         await cg.get_variable(config[CONF_SUN]),
+        await cg.get_variable(config[CONF_DISABLED]),
         actions,
     )
     await cg.register_component(var, config)
