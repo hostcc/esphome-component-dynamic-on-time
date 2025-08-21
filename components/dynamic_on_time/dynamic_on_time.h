@@ -45,6 +45,7 @@ class DynamicOnTime : public Component {
 
   void update_schedule_();
   optional<ESPTime> next_schedule_{};
+  void init_();
 };
 
 }  // namespace dynamic_on_time
