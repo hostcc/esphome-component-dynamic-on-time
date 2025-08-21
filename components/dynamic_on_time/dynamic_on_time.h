@@ -19,7 +19,6 @@ class DynamicOnTime : public Component {
     switch_::Switch *, switch_::Switch *, switch_::Switch *,
     std::vector<esphome::Action<> *>);
 
-  void setup() override;
   void dump_config() override;
 
   optional<ESPTime> get_next_schedule();

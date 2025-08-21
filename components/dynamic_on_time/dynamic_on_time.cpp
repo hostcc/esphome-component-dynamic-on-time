@@ -25,7 +25,33 @@ DynamicOnTime::DynamicOnTime(
     rtc_(rtc),
     hour_(hour), minute_(minute),
     mon_(mon), tue_(tue), wed_(wed), thu_(thu), fri_(fri), sat_(sat),
-    sun_(sun), actions_(actions) {}
+    sun_(sun), actions_(actions) {
+        // Update the configuration initially, ensuring all entities are created
+        // before a callback would be delivered to them
+        this->update_schedule_();
+
+        // Register the cron trigger component
+        App.register_component(this->trigger_);
+
+        // The `Number` and `Switch` has no common base type with
+        // `add_on_state_callback`, and solutions to properly cast to derived
+        // class in single loop over vector of base class instances seemingly imply
+        // more code than just two loops
+        for (number::Number *comp : {this->hour_, this->minute_}) {
+          comp->add_on_state_callback([this](float value) {
+            this->update_schedule_();
+          });
+        }
+
+        for (switch_::Switch *comp : {
+          this->mon_, this->tue_, this->wed_, this->thu_, this->fri_, this->sat_,
+          this->sun_
+        }) {
+          comp->add_on_state_callback([this](float value) {
+            this->update_schedule_();
+          });
+        }
+    }
 
 std::vector<uint8_t> DynamicOnTime::flags_to_days_of_week_(
   bool mon, bool tue, bool wed, bool thu, bool fri, bool sat, bool sun
@@ -45,34 +71,6 @@ std::vector<uint8_t> DynamicOnTime::flags_to_days_of_week_(
     days_of_week.end());
 
   return days_of_week;
-}
-
-void DynamicOnTime::setup() {
-  // Update the configuration initially, ensuring all entities are created
-  // before a callback would be delivered to them
-  this->update_schedule_();
-
-  // Register the cron trigger component
-  App.register_component(this->trigger_);
-
-  // The `Number` and `Switch` has no common base type with
-  // `add_on_state_callback`, and solutions to properly cast to derived
-  // class in single loop over vector of base class instances seemingly imply
-  // more code than just two loops
-  for (number::Number *comp : {this->hour_, this->minute_}) {
-    comp->add_on_state_callback([this](float value) {
-      this->update_schedule_();
-    });
-  }
-
-  for (switch_::Switch *comp : {
-    this->mon_, this->tue_, this->wed_, this->thu_, this->fri_, this->sat_,
-    this->sun_
-  }) {
-    comp->add_on_state_callback([this](float value) {
-      this->update_schedule_();
-    });
-  }
 }
 
 void DynamicOnTime::update_schedule_() {
