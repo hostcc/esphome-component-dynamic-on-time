@@ -9,6 +9,8 @@ api:
 wifi:
   ap:
 
+logger:
+
 external_components:
   - source:
       type: local
