@@ -20,6 +20,7 @@ class DynamicOnTime : public Component {
     std::vector<esphome::Action<> *>);
 
   void dump_config() override;
+  void setup() override;
 
   optional<ESPTime> get_next_schedule();
 
