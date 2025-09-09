@@ -9,7 +9,8 @@
 namespace esphome {
 namespace dynamic_on_time {
 
-static const char *tag = "dynamic_on_time";
+static const char *const tag = "dynamic_on_time";
+static const char *const tag_trigger = "dynamic_on_time.trigger";
 
 DynamicOnTime::DynamicOnTime(
   time::RealTimeClock *rtc,
@@ -32,28 +33,37 @@ DynamicOnTime::DynamicOnTime(
 }
 
 void DynamicOnTime::init_() {
+    // Create the cron trigger instance
+    this->trigger_ = new time::CronTrigger(this->rtc_);
+
+    // Register the cron trigger component
+    App.register_component(this->trigger_);
+}
+
+void DynamicOnTime::setup() {
     // Update the configuration initially, ensuring all entities are created
     // before a callback would be delivered to them
     this->update_schedule_();
 
-    // Register the cron trigger component
-    App.register_component(this->trigger_);
-
+    // Registering callbacks in `setup()` to ensure all components are created
+    ESP_LOGD(tag, "Registering state callbacks");
     // The `Number` and `Switch` has no common base type with
     // `add_on_state_callback`, and solutions to properly cast to derived class
     // in single loop over vector of base class instances seemingly imply more
     // code than just two loops
     for (number::Number *comp : {this->hour_, this->minute_}) {
       comp->add_on_state_callback([this](float value) {
+        ESP_LOGD(tag, "Number state changed, updating schedule");
         this->update_schedule_();
       });
     }
 
     for (switch_::Switch *comp : {
       this->mon_, this->tue_, this->wed_, this->thu_, this->fri_,
-      this->sat_, this->sun_
+      this->sat_, this->sun_, this->disabled_
     }) {
-      comp->add_on_state_callback([this](float value) {
+      comp->add_on_state_callback([this](bool value) {
+        ESP_LOGD(tag, "Switch state changed, updating schedule");
         this->update_schedule_();
       });
     }
@@ -81,25 +91,22 @@ std::vector<uint8_t> DynamicOnTime::flags_to_days_of_week_(
 
 void DynamicOnTime::update_schedule_() {
   // CronTrigger doesn't allow its configuration to be reset programmatically,
-  // so its instance is either created initially, or reinitialized in place if
-  // allocated already
-  if (this->trigger_ != nullptr) {
-    // Use 'placement new' (https://en.cppreference.com/w/cpp/language/new) to
-    // reinitialize existing CronTrigger instance in place
-    this->trigger_->~CronTrigger();
-    new (this->trigger_) time::CronTrigger(this->rtc_);
-  } else {
-    this->trigger_ = new time::CronTrigger(this->rtc_);
-  }
+  // so its instance is reinitialized in place using 'placement new'
+  // (https://en.cppreference.com/w/cpp/language/new)
+  this->trigger_->~CronTrigger();
+  new (this->trigger_) time::CronTrigger(this->rtc_);
+  this->trigger_->set_component_source(tag_trigger);
 
   // (Re)create the automation instance but only if scheduled actions aren't
   // disabled
   if (this->automation_ != nullptr) {
+    ESP_LOGD(tag, "Deleting automation instance");
     delete this->automation_;
     this->automation_ = nullptr;
   }
 
   if (!this->disabled_->state) {
+    ESP_LOGD(tag, "Creating automation instance");
     this->automation_ = new Automation<>(this->trigger_);
     // Add requested actions to it
     this->automation_->add_actions(this->actions_);
