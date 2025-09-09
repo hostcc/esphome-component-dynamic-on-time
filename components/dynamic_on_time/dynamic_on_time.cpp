@@ -9,7 +9,8 @@
 namespace esphome {
 namespace dynamic_on_time {
 
-static const char *tag = "dynamic_on_time";
+static const char *const tag = "dynamic_on_time";
+static const char *const tag_trigger = "dynamic_on_time.trigger";
 
 DynamicOnTime::DynamicOnTime(
   time::RealTimeClock *rtc,
@@ -59,9 +60,9 @@ void DynamicOnTime::setup() {
 
     for (switch_::Switch *comp : {
       this->mon_, this->tue_, this->wed_, this->thu_, this->fri_,
-      this->sat_, this->sun_
+      this->sat_, this->sun_, this->disabled_
     }) {
-      comp->add_on_state_callback([this](float value) {
+      comp->add_on_state_callback([this](bool value) {
         ESP_LOGD(tag, "Switch state changed, updating schedule");
         this->update_schedule_();
       });
@@ -94,6 +95,7 @@ void DynamicOnTime::update_schedule_() {
   // (https://en.cppreference.com/w/cpp/language/new)
   this->trigger_->~CronTrigger();
   new (this->trigger_) time::CronTrigger(this->rtc_);
+  this->trigger_->set_component_source(tag_trigger);
 
   // (Re)create the automation instance but only if scheduled actions aren't
   // disabled
