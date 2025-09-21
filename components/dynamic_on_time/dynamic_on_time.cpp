@@ -96,7 +96,7 @@ void DynamicOnTime::update_schedule_() {
   // (https://en.cppreference.com/w/cpp/language/new)
   this->trigger_->~CronTrigger();
   new (this->trigger_) time::CronTrigger(this->rtc_);
-  
+
   // Since ESPHome 2025.9.0 `set_component_source()` method takes `LogString *`
   // instead of `const char *`
   #if VERSION_CODE(2025, 9, 0) <= ESPHOME_VERSION_CODE
