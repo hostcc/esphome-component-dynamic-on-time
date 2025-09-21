@@ -3,6 +3,7 @@
 
 #include "dynamic_on_time.h"  // NOLINT(build/include_subdir)
 #include <vector>
+#include "esphome/core/version.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
 
@@ -95,7 +96,14 @@ void DynamicOnTime::update_schedule_() {
   // (https://en.cppreference.com/w/cpp/language/new)
   this->trigger_->~CronTrigger();
   new (this->trigger_) time::CronTrigger(this->rtc_);
+
+  // Since ESPHome 2025.9.0 `set_component_source()` method takes `LogString *`
+  // instead of `const char *`
+  #if VERSION_CODE(2025, 9, 0) <= ESPHOME_VERSION_CODE
+  this->trigger_->set_component_source(LOG_STR(tag_trigger));
+  #else
   this->trigger_->set_component_source(tag_trigger);
+  #endif
 
   // (Re)create the automation instance but only if scheduled actions aren't
   // disabled
