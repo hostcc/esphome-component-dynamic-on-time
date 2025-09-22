@@ -1,10 +1,10 @@
 '''
-tbd
+Defines the ESPHome integration schema and code generation logic for the
+component.
 '''
 from esphome.const import (
     CONF_ID,
     CONF_ON_TIME,
-    CONF_THEN,
     CONF_HOUR,
     CONF_MINUTE,
 )
@@ -53,14 +53,8 @@ CONFIG_SCHEMA = cv.Schema({
 
 async def to_code(config):
     '''
-    tbd
+    Generates code from YAML definition.
     '''
-    actions = []
-    for conf in config[CONF_ON_TIME]:
-        actions.extend(await automation.build_action_list(
-            conf[CONF_THEN], cg.TemplateArguments(), [])
-        )
-
     var = cg.new_Pvariable(
         config[CONF_ID],
         await cg.get_variable(config[CONF_RTC]),
@@ -74,6 +68,9 @@ async def to_code(config):
         await cg.get_variable(config[CONF_SAT]),
         await cg.get_variable(config[CONF_SUN]),
         await cg.get_variable(config[CONF_DISABLED]),
-        actions,
     )
     await cg.register_component(var, config)
+
+    # Add automations same as CronTrigger does
+    for conf in config[CONF_ON_TIME]:
+        await automation.build_automation(var, cg.TemplateArguments(), conf)
