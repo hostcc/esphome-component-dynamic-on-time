@@ -1,0 +1,21 @@
+---
+# Test for enabled schedule to trigger the automation
+
+packages:
+  # Setup component under test
+  setup: !include base/test_setup.yaml
+  # Configure it
+  configure: !include base/test_configure.yaml
+  # Validate the results
+  validate: !include
+    file: base/test_validate.yaml
+    vars:
+      # Tests succeeds if automation has been triggered
+      success_condition: return id(schedule_triggered);
+      # Same for considering the test as completed
+      terminal_condition: return id(schedule_triggered);
+
+host:
+
+esphome:
+  name: test-host-schedule-enabled

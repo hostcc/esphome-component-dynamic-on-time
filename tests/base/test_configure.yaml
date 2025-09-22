@@ -1,0 +1,33 @@
+---
+# Common configuration for tests
+
+substitutions:
+  # Schedule is enabled by default
+  schedule_disabled: 'false'
+
+esphome:
+  on_boot:
+    # Configure the inputs
+    - then:
+        # Hour and minute is taken from current time + 1 minute, to ensure the
+        # schedule is aligned to the minute's start
+        - number.set:
+            id: lawn_sprinklers_hour
+            value: !lambda |-
+              return ESPTime::from_epoch_local(::time(nullptr) + 60).hour;
+        - number.set:
+            id: lawn_sprinklers_minute
+            value: !lambda |-
+              return ESPTime::from_epoch_local(::time(nullptr) + 60).minute;
+        # Enable all days of the week
+        - switch.turn_on: lawn_sprinklers_mon
+        - switch.turn_on: lawn_sprinklers_tue
+        - switch.turn_on: lawn_sprinklers_wed
+        - switch.turn_on: lawn_sprinklers_thu
+        - switch.turn_on: lawn_sprinklers_fri
+        - switch.turn_on: lawn_sprinklers_sat
+        - switch.turn_on: lawn_sprinklers_sun
+        # Control the disabled state based on the substitution
+        - switch.control:
+            id: lawn_sprinklers_disabled
+            state: ${ schedule_disabled }

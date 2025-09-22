@@ -1,0 +1,37 @@
+---
+# Validation for tests
+
+substitutions:
+  # Condition to determine test success, should be lambda code returning bool
+  success_condition:
+  # Same but for considering the test as completed, in addition to timeout
+  # below
+  terminal_condition:
+
+esphome:
+  on_boot:
+    # Perform the validation of the results
+    - then:
+        # Wait for terminal condition or timeout
+        - wait_until:
+            condition:
+              lambda: '${ terminal_condition }'
+            # Should be at least one minute long, since the schedules are
+            # configured to run at one minute past the current time
+            timeout: 90s
+        # Determine the test result based on the success condition
+        - if:
+            condition:
+              lambda: '${ success_condition }'
+            then:
+              - logger.log:
+                  format: TEST PASSED
+                  level: ERROR
+              # Signal success by exiting with 0 code
+              - lambda: exit(0);
+            else:
+              - logger.log:
+                  format: TEST FAILED
+                  level: ERROR
+              # Signal failure by exiting with 1 code
+              - lambda: exit(1);

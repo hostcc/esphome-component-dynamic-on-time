@@ -1,0 +1,27 @@
+---
+# Test for disabled schedule to not to trigger the automation.
+
+# The logic is to await for some time and verify that the automation
+# did not get triggered (see base/test_validate.yaml for the timeout logic).
+packages:
+  # Setup the component under test
+  setup: !include base/test_setup.yaml
+  # Configure the component under test
+  configure: !include
+    file: base/test_configure.yaml
+    vars:
+      # The schedule is configured as disabled
+      schedule_disabled: 'true'
+  validate: !include
+    file: base/test_validate.yaml
+    vars:
+      # The schedule must not trigger the automation
+      success_condition: return !id(schedule_triggered);
+      # Test is complete if automation did get triggered
+      # (apparently resulting in a failure)
+      terminal_condition: return id(schedule_triggered);
+
+host:
+
+esphome:
+  name: test-host-schedule-disabled
