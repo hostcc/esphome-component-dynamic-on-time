@@ -3,7 +3,6 @@
 
 #include "dynamic_on_time.h"  // NOLINT(build/include_subdir)
 #include <vector>
-#include "esphome/core/version.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
 
@@ -11,7 +10,6 @@ namespace esphome {
 namespace dynamic_on_time {
 
 static const char *const tag = "dynamic_on_time";
-static const char *const tag_trigger = "dynamic_on_time.trigger";
 
 DynamicOnTime::DynamicOnTime(
   time::RealTimeClock *rtc,
@@ -24,24 +22,16 @@ DynamicOnTime::DynamicOnTime(
   switch_::Switch *fri,
   switch_::Switch *sat,
   switch_::Switch *sun,
-  switch_::Switch *disabled,
-  std::vector<esphome::Action<> *> actions):
-    rtc_(rtc),
-    hour_(hour), minute_(minute),
-    mon_(mon), tue_(tue), wed_(wed), thu_(thu), fri_(fri), sat_(sat),
-    sun_(sun), disabled_(disabled), actions_(actions) {
-      this->init_();
-}
-
-void DynamicOnTime::init_() {
-    // Create the cron trigger instance
-    this->trigger_ = new time::CronTrigger(this->rtc_);
-
-    // Register the cron trigger component
-    App.register_component(this->trigger_);
+  switch_::Switch *disabled):
+    // Invoke base class constructor with RTC instance
+    time::CronTrigger(rtc),
+    hour_comp_(hour), minute_comp_(minute),
+    mon_comp_(mon), tue_comp_(tue), wed_comp_(wed), thu_comp_(thu),
+    fri_comp_(fri), sat_comp_(sat), sun_comp_(sun), disabled_comp_(disabled) {
 }
 
 void DynamicOnTime::setup() {
+    ESP_LOGD(tag, "Setting up component");
     // Update the configuration initially, ensuring all entities are created
     // before a callback would be delivered to them
     this->update_schedule_();
@@ -52,7 +42,7 @@ void DynamicOnTime::setup() {
     // `add_on_state_callback`, and solutions to properly cast to derived class
     // in single loop over vector of base class instances seemingly imply more
     // code than just two loops
-    for (number::Number *comp : {this->hour_, this->minute_}) {
+    for (number::Number *comp : {this->hour_comp_, this->minute_comp_}) {
       comp->add_on_state_callback([this](float value) {
         ESP_LOGD(tag, "Number state changed, updating schedule");
         this->update_schedule_();
@@ -60,8 +50,8 @@ void DynamicOnTime::setup() {
     }
 
     for (switch_::Switch *comp : {
-      this->mon_, this->tue_, this->wed_, this->thu_, this->fri_,
-      this->sat_, this->sun_, this->disabled_
+      this->mon_comp_, this->tue_comp_, this->wed_comp_, this->thu_comp_,
+      this->fri_comp_, this->sat_comp_, this->sun_comp_, this->disabled_comp_
     }) {
       comp->add_on_state_callback([this](bool value) {
         ESP_LOGD(tag, "Switch state changed, updating schedule");
@@ -90,59 +80,58 @@ std::vector<uint8_t> DynamicOnTime::flags_to_days_of_week_(
   return days_of_week;
 }
 
+void DynamicOnTime::reset_trigger_() {
+  ESP_LOGD(tag, "Resetting cron trigger configuration");
+
+  // Clear all trigger configuration that might have been set previously
+  // (except the automation)
+  this->seconds_.reset();
+  this->minutes_.reset();
+  this->hours_.reset();
+  this->days_of_month_.reset();
+  this->months_.reset();
+  this->days_of_week_.clear();
+  // Ensure the CronTrigger runs the matching upon next loop iteration
+  this->last_check_.reset();
+}
+
 void DynamicOnTime::update_schedule_() {
-  // CronTrigger doesn't allow its configuration to be reset programmatically,
-  // so its instance is reinitialized in place using 'placement new'
-  // (https://en.cppreference.com/w/cpp/language/new)
-  this->trigger_->~CronTrigger();
-  new (this->trigger_) time::CronTrigger(this->rtc_);
+  ESP_LOGD(tag, "Updating schedule");
 
-  // Since ESPHome 2025.9.0 `set_component_source()` method takes `LogString *`
-  // instead of `const char *`
-  #if VERSION_CODE(2025, 9, 0) <= ESPHOME_VERSION_CODE
-  this->trigger_->set_component_source(LOG_STR(tag_trigger));
-  #else
-  this->trigger_->set_component_source(tag_trigger);
-  #endif
+  // Clear any previous trigger configuration
+  this->reset_trigger_();
 
-  // (Re)create the automation instance but only if scheduled actions aren't
-  // disabled
-  if (this->automation_ != nullptr) {
-    ESP_LOGD(tag, "Deleting automation instance");
-    delete this->automation_;
-    this->automation_ = nullptr;
+  // No configuration is done if scheduled actions are disabled
+  if (this->disabled_comp_->state) {
+    ESP_LOGD(tag, "Scheduled actions are disabled");
+    // Dump the config to show the disabled state
+    this->dump_config();
+    return;
   }
 
-  if (!this->disabled_->state) {
-    ESP_LOGD(tag, "Creating automation instance");
-    this->automation_ = new Automation<>(this->trigger_);
-    // Add requested actions to it
-    this->automation_->add_actions(this->actions_);
-  }
-
-  // All remaining logic is active regardless of scheduled actions are
+  // All remaining logic is active regardless of whether scheduled actions are
   // disabled, since callbacks from Switch/Number components being active still
   // need to be processed otherwise inputs will be lost
-  //
+
   // Set trigger to fire on zeroth second of configured time
-  this->trigger_->add_second(0);
+  this->add_second(0);
   // Enable all days of months for the schedule
   for (uint8_t i = 1; i <= 31; i++)
-    this->trigger_->add_day_of_month(i);
+    this->add_day_of_month(i);
   // Same but for months
   for (uint8_t i = 1; i <= 12; i++)
-    this->trigger_->add_month(i);
+    this->add_month(i);
   // Configure hour/minute of the schedule from corresponding components' state
-  this->trigger_->add_hour(static_cast<uint8_t>(this->hour_->state));
-  this->trigger_->add_minute(static_cast<uint8_t>(this->minute_->state));
+  this->add_hour(static_cast<uint8_t>(this->hour_comp_->state));
+  this->add_minute(static_cast<uint8_t>(this->minute_comp_->state));
   // Similarly but for days of week translating set of components' state to
   // vector of numeric representation as `CrontTrigger::add_days_of_week()`
   // requires
   this->days_of_week_ = this->flags_to_days_of_week_(
-    this->mon_->state, this->tue_->state, this->wed_->state,
-    this->thu_->state, this->fri_->state, this->sat_->state,
-    this->sun_->state);
-  this->trigger_->add_days_of_week(this->days_of_week_);
+    this->mon_comp_->state, this->tue_comp_->state, this->wed_comp_->state,
+    this->thu_comp_->state, this->fri_comp_->state, this->sat_comp_->state,
+    this->sun_comp_->state);
+  this->add_days_of_week(this->days_of_week_);
 
   // Initiate updating the cached value for the next schedule
   this->next_schedule_.reset();
@@ -152,7 +141,7 @@ void DynamicOnTime::update_schedule_() {
 }
 
 optional<ESPTime> DynamicOnTime::get_next_schedule() {
-  if (this->disabled_->state || this->days_of_week_.empty())
+  if (this->disabled_comp_->state || this->days_of_week_.empty())
     return {};
 
   ESPTime now = this->rtc_->now();
@@ -166,8 +155,8 @@ optional<ESPTime> DynamicOnTime::get_next_schedule() {
   // the schedule
   time_t start_of_week = now.timestamp
     - (now.second + now.hour * 3600 + now.minute * 60 + now.day_of_week * 86400)
-    + (3600 * static_cast<int>(this->hour_->state)
-    + 60 * static_cast<int>(this->minute_->state));
+    + (3600 * static_cast<int>(this->hour_comp_->state)
+    + 60 * static_cast<int>(this->minute_comp_->state));
 
   time_t next = 0, first = 0;
   for (auto next_day : this->days_of_week_) {
@@ -190,34 +179,34 @@ optional<ESPTime> DynamicOnTime::get_next_schedule() {
 
 void DynamicOnTime::dump_config() {
   ESP_LOGCONFIG(tag, "Cron trigger details:");
-  ESP_LOGCONFIG(tag, "Disabled: %s", ONOFF(this->disabled_->state));
+  ESP_LOGCONFIG(tag, "Disabled: %s", ONOFF(this->disabled_comp_->state));
   ESP_LOGCONFIG(
     tag, "Hour (source: '%s'): %.0f",
-    this->hour_->get_name().c_str(), this->hour_->state);
+    this->hour_comp_->get_name().c_str(), this->hour_comp_->state);
   ESP_LOGCONFIG(
     tag, "Minute (source: '%s'): %.0f",
-    this->minute_->get_name().c_str(), this->minute_->state);
+    this->minute_comp_->get_name().c_str(), this->minute_comp_->state);
   ESP_LOGCONFIG(
     tag, "Mon (source: '%s'): %s",
-    this->mon_->get_name().c_str(), ONOFF(this->mon_->state));
+    this->mon_comp_->get_name().c_str(), ONOFF(this->mon_comp_->state));
   ESP_LOGCONFIG(
     tag, "Tue (source: '%s'): %s",
-    this->tue_->get_name().c_str(), ONOFF(this->tue_->state));
+    this->tue_comp_->get_name().c_str(), ONOFF(this->tue_comp_->state));
   ESP_LOGCONFIG(
     tag, "Wed (source: '%s'): %s",
-    this->wed_->get_name().c_str(), ONOFF(this->wed_->state));
+    this->wed_comp_->get_name().c_str(), ONOFF(this->wed_comp_->state));
   ESP_LOGCONFIG(
     tag, "Thu (source: '%s'): %s",
-    this->thu_->get_name().c_str(), ONOFF(this->thu_->state));
+    this->thu_comp_->get_name().c_str(), ONOFF(this->thu_comp_->state));
   ESP_LOGCONFIG(
     tag, "Fri (source: '%s'): %s",
-    this->fri_->get_name().c_str(), ONOFF(this->fri_->state));
+    this->fri_comp_->get_name().c_str(), ONOFF(this->fri_comp_->state));
   ESP_LOGCONFIG(
     tag, "Sat (source: '%s'): %s",
-    this->sat_->get_name().c_str(), ONOFF(this->sat_->state));
+    this->sat_comp_->get_name().c_str(), ONOFF(this->sat_comp_->state));
   ESP_LOGCONFIG(
     tag, "Sun (source: '%s'): %s",
-    this->sun_->get_name().c_str(), ONOFF(this->sun_->state));
+    this->sun_comp_->get_name().c_str(), ONOFF(this->sun_comp_->state));
 
   auto schedule = this->get_next_schedule();
   if (schedule.has_value())

@@ -11,13 +11,16 @@
 namespace esphome {
 namespace dynamic_on_time {
 
-class DynamicOnTime : public Component {
+// The component directly inherits from CronTrigger to allow manipulating
+// with its protected/private members. Despite the API might get changed in
+// future, the implementation has better maintainability because of simpler
+// logic.
+class DynamicOnTime : public time::CronTrigger {
  public:
   explicit DynamicOnTime(
     time::RealTimeClock *, number::Number *, number::Number *,
     switch_::Switch *, switch_::Switch *, switch_::Switch *, switch_::Switch *,
-    switch_::Switch *, switch_::Switch *, switch_::Switch *, switch_::Switch *,
-    std::vector<esphome::Action<> *>);
+    switch_::Switch *, switch_::Switch *, switch_::Switch *, switch_::Switch *);
 
   void dump_config() override;
   void setup() override;
@@ -25,20 +28,16 @@ class DynamicOnTime : public Component {
   optional<ESPTime> get_next_schedule();
 
  protected:
-  time::RealTimeClock *rtc_;
-  number::Number *hour_;
-  number::Number *minute_;
-  switch_::Switch *mon_;
-  switch_::Switch *tue_;
-  switch_::Switch *wed_;
-  switch_::Switch *thu_;
-  switch_::Switch *fri_;
-  switch_::Switch *sat_;
-  switch_::Switch *sun_;
-  switch_::Switch *disabled_;
-  std::vector<esphome::Action<> *> actions_;
-  time::CronTrigger *trigger_{nullptr};
-  Automation<> *automation_{nullptr};
+  number::Number *hour_comp_;
+  number::Number *minute_comp_;
+  switch_::Switch *mon_comp_;
+  switch_::Switch *tue_comp_;
+  switch_::Switch *wed_comp_;
+  switch_::Switch *thu_comp_;
+  switch_::Switch *fri_comp_;
+  switch_::Switch *sat_comp_;
+  switch_::Switch *sun_comp_;
+  switch_::Switch *disabled_comp_;
   std::vector<uint8_t> days_of_week_{};
 
   std::vector<uint8_t> flags_to_days_of_week_(
@@ -46,7 +45,8 @@ class DynamicOnTime : public Component {
 
   void update_schedule_();
   optional<ESPTime> next_schedule_{};
-  void init_();
+
+  void reset_trigger_();
 };
 
 }  // namespace dynamic_on_time
