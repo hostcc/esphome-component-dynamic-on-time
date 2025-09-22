@@ -90,7 +90,7 @@ void DynamicOnTime::reset_trigger_() {
   this->hours_.reset();
   this->days_of_month_.reset();
   this->months_.reset();
-  this->days_of_week_.clear();
+  this->days_of_week_.reset();
   // Ensure the CronTrigger runs the matching upon next loop iteration
   this->last_check_.reset();
 }
@@ -127,11 +127,11 @@ void DynamicOnTime::update_schedule_() {
   // Similarly but for days of week translating set of components' state to
   // vector of numeric representation as `CrontTrigger::add_days_of_week()`
   // requires
-  this->days_of_week_ = this->flags_to_days_of_week_(
+  this->days_of_week_cache_ = this->flags_to_days_of_week_(
     this->mon_comp_->state, this->tue_comp_->state, this->wed_comp_->state,
     this->thu_comp_->state, this->fri_comp_->state, this->sat_comp_->state,
     this->sun_comp_->state);
-  this->add_days_of_week(this->days_of_week_);
+  this->add_days_of_week(this->days_of_week_cache_);
 
   // Initiate updating the cached value for the next schedule
   this->next_schedule_.reset();
@@ -141,7 +141,7 @@ void DynamicOnTime::update_schedule_() {
 }
 
 optional<ESPTime> DynamicOnTime::get_next_schedule() {
-  if (this->disabled_comp_->state || this->days_of_week_.empty())
+  if (this->disabled_comp_->state || this->days_of_week_cache_.empty())
     return {};
 
   ESPTime now = this->rtc_->now();
@@ -159,7 +159,7 @@ optional<ESPTime> DynamicOnTime::get_next_schedule() {
     + 60 * static_cast<int>(this->minute_comp_->state));
 
   time_t next = 0, first = 0;
-  for (auto next_day : this->days_of_week_) {
+  for (auto next_day : this->days_of_week_cache_) {
     // Calculate the timestamp for next day in schedule
     next = start_of_week + 86400 * next_day;
     // Capture timestamp for the first scheduled day

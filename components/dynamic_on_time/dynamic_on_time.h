@@ -38,7 +38,7 @@ class DynamicOnTime : public time::CronTrigger {
   switch_::Switch *sat_comp_;
   switch_::Switch *sun_comp_;
   switch_::Switch *disabled_comp_;
-  std::vector<uint8_t> days_of_week_{};
+  std::vector<uint8_t> days_of_week_cache_{};
 
   std::vector<uint8_t> flags_to_days_of_week_(
     bool, bool, bool, bool, bool, bool, bool);
