@@ -30,4 +30,4 @@ esphome:
         # Control the disabled state based on the substitution
         - switch.control:
             id: lawn_sprinklers_disabled
-            state: ${ schedule_disabled }
+            state: ${schedule_disabled}

@@ -15,14 +15,14 @@ esphome:
         # Wait for terminal condition or timeout
         - wait_until:
             condition:
-              lambda: '${ terminal_condition }'
+              lambda: '${terminal_condition}'
             # Should be at least one minute long, since the schedules are
             # configured to run at one minute past the current time
             timeout: 90s
         # Determine the test result based on the success condition
         - if:
             condition:
-              lambda: '${ success_condition }'
+              lambda: '${success_condition}'
             then:
               - logger.log:
                   format: TEST PASSED

@@ -1,5 +1,5 @@
 ---
-# Test for disabled schedule to not to trigger the automation.
+# Test for disabled schedule to not trigger the automation.
 
 # The logic is to await for some time and verify that the automation
 # did not get triggered (see base/test_validate.yaml for the timeout logic).
