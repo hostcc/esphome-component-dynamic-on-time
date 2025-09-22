@@ -11,4 +11,4 @@ wifi:
   ap:
 
 packages:
-  base: !include base.yaml
+  setup: !include base/test_setup.yaml
