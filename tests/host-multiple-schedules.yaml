@@ -1,0 +1,51 @@
+---
+# Test for multiple schedules triggering the automations.
+
+packages:
+  # Setup component under test
+  setup: !include base/test_setup.yaml
+  # Configure the component under test
+  configure: !include base/test_configure.yaml
+  # Validate the results
+  validate: !include
+    file: base/test_validate.yaml
+    vars:
+      # Test succeeds if both automations have been triggered
+      success_condition: |-
+        return id(schedule_triggered) && id(schedule2_triggered);
+      # Same for considering the test as completed
+      terminal_condition: |-
+        return id(schedule_triggered) && id(schedule2_triggered);
+
+host:
+
+# 2nd component instance and the variable to track its triggering
+globals:
+  - id: schedule2_triggered
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+dynamic_on_time:
+  - id: lawn_schedule2
+    rtc: homeassistant_time
+    hour: lawn_sprinklers_hour
+    minute: lawn_sprinklers_minute
+    mon: lawn_sprinklers_mon
+    tue: lawn_sprinklers_tue
+    wed: lawn_sprinklers_wed
+    thu: lawn_sprinklers_thu
+    fri: lawn_sprinklers_fri
+    sat: lawn_sprinklers_sat
+    sun: lawn_sprinklers_sun
+    disabled: lawn_sprinklers_disabled
+    on_time:
+      - logger.log:
+          format: SCHEDULE2 STARTED
+          level: ERROR
+      - globals.set:
+          id: schedule2_triggered
+          value: 'true'
+
+esphome:
+  name: test-host-multiple-schedules

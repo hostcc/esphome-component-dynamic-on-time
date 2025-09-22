@@ -33,3 +33,24 @@ jobs:
           python-version: '3.13'
       - run: pip install -r requirements.txt
       - run: esphome compile tests/esp32.yaml
+    
+  e2e-tests:
+    name: Run end-to-end tests on 'host' platform
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        testfile:
+          - tests/host-schedule-enabled.yaml
+          - tests/host-schedule-disabled.yaml
+          - tests/host-multiple-schedules.yaml
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      - run: pip install -r requirements.txt
+      - name: Run test with '${{ matrix.testfile }}'
+        run: |
+          esphome run ${{ matrix.testfile }}
+        shell: bash
+        timeout-minutes: 2
