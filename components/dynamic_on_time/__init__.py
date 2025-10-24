@@ -30,6 +30,7 @@ CONF_SUN = 'sun'
 CONF_DISABLED = 'disabled'
 
 dynamic_on_time_ns = cg.esphome_ns.namespace("dynamic_on_time")
+# pylint: disable=invalid-name
 DynamicOnTimeComponent = dynamic_on_time_ns.class_(
     "DynamicOnTime", cg.Component
 )
