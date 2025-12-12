@@ -3,8 +3,3 @@
 # You can modify this file to suit your needs.
 /.esphome/
 /secrets.yaml
-
-# Python cache
-__pycache__/
-*.py[cod]
-*$py.class
