@@ -1,0 +1,4 @@
+[project]
+# ESPHome doesn't allow Python 3.14, which Dependabot attempts to use - constrain
+# the Python version correspondingly.
+requires-python = ">=3.11.0,<3.14"
