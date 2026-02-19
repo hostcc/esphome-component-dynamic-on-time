@@ -74,4 +74,4 @@ async def to_code(config):
 
     # Add automations same as CronTrigger does
     for conf in config[CONF_ON_TIME]:
-        await automation.build_automation(var, cg.TemplateArguments(), conf)
+        await automation.build_automation(var, [], conf)
