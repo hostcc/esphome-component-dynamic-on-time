@@ -32,8 +32,6 @@ DynamicOnTime::DynamicOnTime(
 
 void DynamicOnTime::setup() {
     ESP_LOGD(tag, "Setting up component");
-    // Compatibility note:
-    // 
     // ESPHome <=2026.3.x drove CronTrigger from loop(), but >=2026.4.0 moved
     // it to setup()-registered interval callbacks (see ESPHome PR #15433
     // "[time] Use set_interval for CronTrigger instead of loop()").
