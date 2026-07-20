@@ -2,9 +2,9 @@
 // Copyright (c) 2023 Ilia Sotnikov
 
 #include "dynamic_on_time.h"  // NOLINT(build/include_subdir)
+#include <new>
 #include <vector>
 #include "esphome/core/log.h"
-#include "esphome/core/application.h"
 
 namespace esphome {
 namespace dynamic_on_time {
@@ -23,11 +23,15 @@ DynamicOnTime::DynamicOnTime(
   switch_::Switch *sat,
   switch_::Switch *sun,
   switch_::Switch *disabled):
-    // Invoke base class constructor with RTC instance
-    time::CronTrigger(rtc),
+    cron_(rtc), rtc_(rtc),
     hour_comp_(hour), minute_comp_(minute),
     mon_comp_(mon), tue_comp_(tue), wed_comp_(wed), thu_comp_(thu),
     fri_comp_(fri), sat_comp_(sat), sun_comp_(sun), disabled_comp_(disabled) {
+}
+
+void DynamicOnTime::set_automation(Automation<> *automation) {
+  this->automation_ = automation;
+  this->cron_.set_automation_parent(automation);
 }
 
 void DynamicOnTime::setup() {
@@ -35,9 +39,9 @@ void DynamicOnTime::setup() {
     // ESPHome <=2026.3.x drove CronTrigger from loop(), but >=2026.4.0 moved
     // it to setup()-registered interval callbacks (see ESPHome PR #15433
     // "[time] Use set_interval for CronTrigger instead of loop()").
-    // Hence, keep this base setup call so trigger checks start and
-    // on_time automations actually fire.
-    time::CronTrigger::setup();
+    // Call once here; reset_trigger_() must not call setup() again or the
+    // interval would be registered twice.
+    this->cron_.setup();
     // Update the configuration initially, ensuring all entities are created
     // before a callback would be delivered to them
     this->update_schedule_();
@@ -89,16 +93,13 @@ std::vector<uint8_t> DynamicOnTime::flags_to_days_of_week_(
 void DynamicOnTime::reset_trigger_() {
   ESP_LOGD(tag, "Resetting cron trigger configuration");
 
-  // Clear all trigger configuration that might have been set previously
-  // (except the automation)
-  this->seconds_.reset();
-  this->minutes_.reset();
-  this->hours_.reset();
-  this->days_of_month_.reset();
-  this->months_.reset();
-  this->days_of_week_.reset();
-  // Ensure the CronTrigger runs the matching upon next loop iteration
-  this->last_check_.reset();
+  // CronTrigger is final and has no public clear API; reconstruct in place so
+  // protected bitsets/last_check_ are reset while keeping the same address
+  // (the interval registered by cron_.setup() continues to call check_time_).
+  this->cron_.~CronTrigger();
+  new (&this->cron_) time::CronTrigger(this->rtc_);
+  if (this->automation_ != nullptr)
+    this->cron_.set_automation_parent(this->automation_);
 }
 
 void DynamicOnTime::update_schedule_() {
@@ -120,24 +121,24 @@ void DynamicOnTime::update_schedule_() {
   // need to be processed otherwise inputs will be lost
 
   // Set trigger to fire on zeroth second of configured time
-  this->add_second(0);
+  this->cron_.add_second(0);
   // Enable all days of months for the schedule
   for (uint8_t i = 1; i <= 31; i++)
-    this->add_day_of_month(i);
+    this->cron_.add_day_of_month(i);
   // Same but for months
   for (uint8_t i = 1; i <= 12; i++)
-    this->add_month(i);
+    this->cron_.add_month(i);
   // Configure hour/minute of the schedule from corresponding components' state
-  this->add_hour(static_cast<uint8_t>(this->hour_comp_->state));
-  this->add_minute(static_cast<uint8_t>(this->minute_comp_->state));
+  this->cron_.add_hour(static_cast<uint8_t>(this->hour_comp_->state));
+  this->cron_.add_minute(static_cast<uint8_t>(this->minute_comp_->state));
   // Similarly but for days of week translating set of components' state to
-  // vector of numeric representation as `CrontTrigger::add_days_of_week()`
+  // vector of numeric representation as `CronTrigger::add_days_of_week()`
   // requires
   this->days_of_week_cache_ = this->flags_to_days_of_week_(
     this->mon_comp_->state, this->tue_comp_->state, this->wed_comp_->state,
     this->thu_comp_->state, this->fri_comp_->state, this->sat_comp_->state,
     this->sun_comp_->state);
-  this->add_days_of_week(this->days_of_week_cache_);
+  this->cron_.add_days_of_week(this->days_of_week_cache_);
 
   // Initiate updating the cached value for the next schedule
   this->next_schedule_.reset();
