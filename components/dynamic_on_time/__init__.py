@@ -72,6 +72,9 @@ async def to_code(config):
     )
     await cg.register_component(var, config)
 
-    # Add automations same as CronTrigger does
+    # Attach on_time automations to the owned CronTrigger and save the
+    # Automation* so schedule resets can restore set_automation_parent().
+    trigger = var.get_cron_trigger()
     for conf in config[CONF_ON_TIME]:
-        await automation.build_automation(var, [], conf)
+        autom = await automation.build_automation(trigger, [], conf)
+        cg.add(var.set_automation(autom))

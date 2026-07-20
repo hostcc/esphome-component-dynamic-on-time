@@ -3,6 +3,8 @@
 
 #pragma once
 #include <vector>
+#include "esphome/core/component.h"
+#include "esphome/core/automation.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/components/time/automation.h"
 #include "esphome/components/number/number.h"
@@ -11,11 +13,11 @@
 namespace esphome {
 namespace dynamic_on_time {
 
-// The component directly inherits from CronTrigger to allow manipulating
-// with its protected/private members. Despite the API might get changed in
-// future, the implementation has better maintainability because of simpler
-// logic.
-class DynamicOnTime : public time::CronTrigger {
+// Owns a CronTrigger and reconfigures it at runtime from Number/Switch
+// entities. CronTrigger is final since ESPHome 2026.7.0, so schedule resets
+// reconstruct the owned instance in place (placement-new) then re-apply
+// add_* configuration via the public API.
+class DynamicOnTime : public Component {
  public:
   explicit DynamicOnTime(
     time::RealTimeClock *, number::Number *, number::Number *,
@@ -25,9 +27,16 @@ class DynamicOnTime : public time::CronTrigger {
   void dump_config() override;
   void setup() override;
 
+  time::CronTrigger *get_cron_trigger() { return &this->cron_; }
+  void set_automation(Automation<> *automation);
+
   optional<ESPTime> get_next_schedule();
 
  protected:
+  time::CronTrigger cron_;
+  time::RealTimeClock *rtc_;
+  Automation<> *automation_{nullptr};
+
   number::Number *hour_comp_;
   number::Number *minute_comp_;
   switch_::Switch *mon_comp_;
