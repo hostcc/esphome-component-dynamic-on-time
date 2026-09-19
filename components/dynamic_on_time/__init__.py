@@ -56,6 +56,14 @@ async def to_code(config):
     '''
     Generates code from YAML definition.
     '''
+    # ESPHome 2026.9.0 (esphome#18750) compiles CronTrigger only when
+    # USE_TIME_TRIGGERS is set. Stock time codegen emits that define only for
+    # YAML time.on_time / time.on_time_sync, so host and ESP32 builds fail with:
+    #   no type named 'CronTrigger' in namespace 'esphome::time'
+    # This component owns a CronTrigger for dynamic_on_time.on_time, so it must
+    # emit the define itself (also keeps time/automation.cpp in the firmware).
+    cg.add_define("USE_TIME_TRIGGERS")
+
     var = cg.new_Pvariable(
         config[CONF_ID],
         await cg.get_variable(config[CONF_RTC]),
