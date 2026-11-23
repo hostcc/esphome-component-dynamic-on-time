@@ -5,6 +5,7 @@ api:
 
 logger:
   level: ERROR
+  boot_log_level: ERROR
 
 # Source the component to test
 external_components:
